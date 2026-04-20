@@ -5,7 +5,6 @@ import {
   getBundleHashInputPaths,
   getBundleHashRepoInputPaths,
   getLocalRolldownCliCandidates,
-  getResolvedBundleDependencyPackageJsonPaths,
   isBundleHashInputPath,
 } from "../../scripts/bundle-a2ui.mjs";
 
@@ -52,30 +51,24 @@ describe("scripts/bundle-a2ui.mjs", () => {
     ]);
   });
 
-  it("keeps repo-root package churn out of bundle hash inputs", () => {
+  it("tracks repo dependency manifests through lockfile inputs", () => {
     const repoRoot = path.resolve("repo-root");
     const inputPaths = getBundleHashRepoInputPaths(repoRoot);
 
+    expect(inputPaths).toContain(path.join(repoRoot, "package.json"));
+    expect(inputPaths).toContain(path.join(repoRoot, "pnpm-lock.yaml"));
     expect(inputPaths).toContain(path.join(repoRoot, "ui", "package.json"));
-    expect(inputPaths).not.toContain(path.join(repoRoot, "package.json"));
-    expect(inputPaths).not.toContain(path.join(repoRoot, "pnpm-lock.yaml"));
   });
 
-  it("tracks only the resolved bundle dependency manifests from node_modules", () => {
+  it("keeps local node_modules state out of bundle hash inputs", () => {
     const repoRoot = process.cwd();
-    const dependencyPaths = getResolvedBundleDependencyPackageJsonPaths(repoRoot);
+    const inputPaths = getBundleHashInputPaths(repoRoot);
 
-    expect(dependencyPaths).toContain(path.join(repoRoot, "node_modules", "lit", "package.json"));
-    expect(dependencyPaths).toContain(
-      path.join(repoRoot, "node_modules", "@lit/context", "package.json"),
+    expect(inputPaths).toContain(path.join(repoRoot, "package.json"));
+    expect(inputPaths).toContain(path.join(repoRoot, "pnpm-lock.yaml"));
+    expect(inputPaths).not.toContain(path.join(repoRoot, "node_modules", "lit", "package.json"));
+    expect(inputPaths).not.toContain(
+      path.join(repoRoot, "ui", "node_modules", "lit", "package.json"),
     );
-    expect(dependencyPaths).toContain(
-      path.join(repoRoot, "node_modules", "@lit-labs/signals", "package.json"),
-    );
-    expect(dependencyPaths).toContain(
-      path.join(repoRoot, "node_modules", "signal-utils", "package.json"),
-    );
-    expect(getBundleHashInputPaths(repoRoot)).not.toContain(path.join(repoRoot, "package.json"));
-    expect(getBundleHashInputPaths(repoRoot)).not.toContain(path.join(repoRoot, "pnpm-lock.yaml"));
   });
 });
